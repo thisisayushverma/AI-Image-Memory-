@@ -1,7 +1,9 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from app.tasks.tasks import process_image
 import os
 import shutil
+import uuid
 
 
 app = FastAPI(
@@ -40,15 +42,18 @@ async def uploadImage(images:list[UploadFile] = File(...)):
         print(f"images data {images}")
         upload_dir = "uploads"
 
-                # Create folder if it doesn't exist
+        # Create folder if it doesn't exist
         os.makedirs(upload_dir, exist_ok=True)
 
         for image in images:
-            file_path = os.path.join(upload_dir, image.filename)
+            imgId = str(uuid.uuid4())
+            print(f"image id - {imgId}")
+            file_path = os.path.join(upload_dir, imgId)
 
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
-
+            process_image.delay(imgId)
+        
 
         return {
                 "data":"Images Upload successfully",
